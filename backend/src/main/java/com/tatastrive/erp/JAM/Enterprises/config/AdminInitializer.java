@@ -13,10 +13,10 @@ import org.springframework.beans.factory.annotation.Value;
 @Configuration
 public class AdminInitializer {
 
-    @Value("${spring.security.user.name:admin@jam.com}")
+    @Value("${spring.security.user.name}")
     private String adminEmail;
 
-    @Value("${spring.security.user.password:Admin@123}")
+    @Value("${spring.security.user.password}")
     private String adminPassword;
 
     @Bean

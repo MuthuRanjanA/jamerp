@@ -30,7 +30,7 @@ public class SecurityConfig {
 	@Autowired
 	private JwtAuthenticationFilter jwtAuthFilter;
 
-	@Value("${app.cors.allowed-origins:https://*.vercel.app,https://*.netlify.app,https://jamerpapplication.netlify.app,http://localhost:5173,http://localhost:3000,http://localhost:5174}")
+	@Value("${app.cors.allowed-origins:https://*.vercel.app,https://*.netlify.app,https://jamerp.netlify.app,https://jamerpapplication.netlify.app,http://localhost:5173,http://localhost:3000,http://localhost:5174}")
 	private String corsAllowedOrigins;
 
 	@Bean
@@ -140,6 +140,7 @@ public class SecurityConfig {
 		if (origins.isEmpty()) {
 			origins.add("https://*.vercel.app");
 			origins.add("https://*.netlify.app");
+			origins.add("https://jamerp.netlify.app");
 			origins.add("https://jamerpapplication.netlify.app");
 			origins.add("http://localhost:5173");
 			origins.add("http://localhost:5174");
@@ -148,7 +149,15 @@ public class SecurityConfig {
 
 		config.setAllowedOriginPatterns(origins);
 		config.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH", "HEAD"));
-		config.setAllowedHeaders(List.of("*"));
+		config.setAllowedHeaders(List.of(
+				"Authorization",
+				"Content-Type",
+				"Accept",
+				"Origin",
+				"X-Requested-With",
+				"Access-Control-Request-Method",
+				"Access-Control-Request-Headers"
+		));
 		config.setExposedHeaders(List.of(
 				"Authorization",
 				"Content-Disposition",

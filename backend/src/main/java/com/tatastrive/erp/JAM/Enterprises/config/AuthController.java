@@ -51,7 +51,7 @@ public class AuthController {
 		AppUser user =
 				userRepo.findByEmail(email)
 						.orElseThrow(() ->
-								new com.tatastrive.erp.JAM.Enterprises.exception.ResourceNotFoundException(
+								new RuntimeException(
 										"User not found"
 								)
 						);

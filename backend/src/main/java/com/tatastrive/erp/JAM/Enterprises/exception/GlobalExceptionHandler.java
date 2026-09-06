@@ -25,9 +25,8 @@ public class GlobalExceptionHandler {
     public ResponseEntity<ApiResponse> handleGeneralException(
             Exception exception
     ) {
-        exception.printStackTrace(); // Log the exact error to Render console
 
-        ApiResponse response = new ApiResponse("An unexpected error occurred: " + exception.getMessage(), null);
+        ApiResponse response = new ApiResponse("An unexpected error occurred", null);
 
         return new ResponseEntity<>(response, HttpStatus.INTERNAL_SERVER_ERROR);
     }
