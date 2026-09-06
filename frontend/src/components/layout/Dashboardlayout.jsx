@@ -1,6 +1,7 @@
 import { useState } from "react";
 import Sidebar from "./Sidebar";
 import Navbar from "./Navbar";
+import AssistantBot from "../assistant/AssistantBot";
 
 function DashboardLayout({ children }) {
   const [isSidebarOpen, setIsSidebarOpen] =
@@ -29,6 +30,8 @@ function DashboardLayout({ children }) {
           {children}
         </main>
       </div>
+
+      <AssistantBot />
     </div>
   );
 }

@@ -13,7 +13,6 @@ import java.util.List;
 
 @RestController
 @RequestMapping("/shifts")
-@CrossOrigin(origins = "*")
 public class ShiftController {
 
     @Autowired

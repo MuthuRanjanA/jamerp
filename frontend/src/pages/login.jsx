@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import { FaEnvelope, FaLock, FaEye, FaEyeSlash } from "react-icons/fa";
 
 import api from "../api/axiosInstance";
@@ -7,6 +7,32 @@ import BrandPanel from "../components/layout/BrandPanel";
 import { useToast } from "../components/common/ToastContext";
 
 import "../style/auth.css";
+
+const getLoginErrorMessage = (error) => {
+  if (!error.isAxiosError) {
+    return error.message || "Unable to sign in. Please try again.";
+  }
+
+  const status = error.response?.status;
+
+  if (status === 401 || status === 403) {
+    return "Invalid email or password.";
+  }
+
+  if (status >= 500) {
+    return "The login service is temporarily unavailable. Please try again shortly.";
+  }
+
+  if (error.code === "ECONNABORTED") {
+    return "The login service took too long to respond (Render cold start). Please retry in a moment.";
+  }
+
+  if (!error.response) {
+    return "Cannot connect to server. Please check your internet or server status.";
+  }
+
+  return error.response.data?.message || "Unable to sign in. Please try again.";
+};
 
 function Login() {
   const navigate = useNavigate();
@@ -31,16 +57,17 @@ function Login() {
 
     setErrorMessage("");
   };
+
   const loginUser = async (e) => {
     e.preventDefault();
     setIsLoading(true);
     setErrorMessage("");
 
     try {
-      const response = await api.post(
-        "/api/auth/login",
-        loginData
-      );
+      const response = await api.post("/api/auth/login", {
+        email: loginData.email.trim(),
+        password: loginData.password,
+      });
 
       const {
         token,
@@ -50,9 +77,13 @@ function Login() {
         temporaryPassword,
       } = response.data;
 
+      if (!token) {
+        throw new Error("The login response did not include an access token.");
+      }
+
       localStorage.setItem("token", token);
       localStorage.setItem("role", role?.trim()?.toUpperCase() || "EMPLOYEE");
-      localStorage.setItem("email", loginData.email);
+      localStorage.setItem("email", loginData.email.trim());
 
       if (employeeId !== null && employeeId !== undefined) {
         localStorage.setItem("employeeId", employeeId);
@@ -70,23 +101,15 @@ function Login() {
       }
 
       navigate("/dashboard");
-
     } catch (error) {
       localStorage.removeItem("token");
       localStorage.removeItem("role");
       localStorage.removeItem("employeeId");
       localStorage.removeItem("employeeName");
 
-      const msg =
-        error.response?.data?.message ||
-        (error.code === "ECONNABORTED"
-          ? "Server is waking up (Render cold start). Please retry in a moment."
-          : !error.response
-          ? "Cannot connect to server. Please check your internet or server status."
-          : "Invalid email or password");
-
-      setErrorMessage(msg);
-      toast.error(msg);
+      const message = getLoginErrorMessage(error);
+      setErrorMessage(message);
+      toast.error(message);
     } finally {
       setIsLoading(false);
     }
@@ -135,6 +158,7 @@ function Login() {
                     onChange={handleChange}
                     placeholder="name@company.com"
                     autoComplete="email"
+                    required
                   />
                 </div>
               </div>
@@ -162,6 +186,7 @@ function Login() {
                     onChange={handleChange}
                     placeholder="Enter your password"
                     autoComplete="current-password"
+                    required
                   />
 
                   <button
@@ -189,8 +214,8 @@ function Login() {
             </form>
 
             <p className="login-help-text">
-  Contact HR if you do not have an ERP account.
-</p>
+              Contact HR if you do not have an ERP account.
+            </p>
 
             <p className="auth-copyright">
               © 2026 JAM Enterprises. ERP Management System.

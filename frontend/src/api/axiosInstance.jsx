@@ -31,8 +31,13 @@ api.interceptors.response.use(
     return response;
   },
   (error) => {
-    if (error.response && (error.response.status === 401 || error.response.status === 403)) {
-      // Do not trigger redirect loop if already on the login page
+    const isLoginRequest = error.config?.url?.includes("/auth/login");
+
+    if (
+      !isLoginRequest &&
+      error.response &&
+      (error.response.status === 401 || error.response.status === 403)
+    ) {
       const currentPath = window.location.pathname;
       if (!currentPath.includes("/login")) {
         console.error("Token expired or unauthorized, redirecting to login.");

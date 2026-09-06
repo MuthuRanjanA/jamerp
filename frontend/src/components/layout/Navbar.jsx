@@ -2,7 +2,9 @@ import {
   FaBars,
   FaBell,
   FaUserCircle,
+  FaRobot,
 } from "react-icons/fa";
+import { HiSparkles } from "react-icons/hi2";
 
 import { useNavigate } from "react-router-dom";
 import { useState,useEffect } from "react";
@@ -28,6 +30,10 @@ function Navbar({ toggleSidebar }) {
       toast.info("Please complete the action checklist.");
       setActionsCompleted(true);
     }
+  };
+
+  const handleOpenAssistant = () => {
+    window.dispatchEvent(new CustomEvent("open-jam-assistant"));
   };
 
   const toggleProfile = () => {
@@ -102,6 +108,18 @@ const handleLogout = () => {
       </div>
 
       <div className="navbar-right">
+
+        <button
+          type="button"
+          className="navbar-assistant-btn"
+          aria-label="Ask AI Assistant"
+          title="JAM ERP Assistant"
+          onClick={handleOpenAssistant}
+        >
+          <FaRobot className="navbar-assistant-icon" />
+          <span className="navbar-assistant-text">Ask AI</span>
+          <HiSparkles className="navbar-assistant-sparkle" />
+        </button>
 
         <button
           type="button"

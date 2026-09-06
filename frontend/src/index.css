@@ -186,8 +186,41 @@ button {
   cursor: pointer;
 }
 
+.navbar-assistant-btn {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 8px 14px;
+  height: 42px;
+  background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%);
+  border: 1px solid #bfdbfe;
+  color: #1d4ed8;
+  border-radius: 10px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.navbar-assistant-btn:hover {
+  background: linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%);
+  color: #1e3a8a;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(37, 99, 235, 0.15);
+}
+
+.navbar-assistant-icon {
+  font-size: 16px;
+  color: #2563eb;
+}
+
+.navbar-assistant-sparkle {
+  font-size: 13px;
+  color: #eab308;
+}
+
 .navbar-right {
-  gap: 18px;
+  gap: 14px;
 }
 
 .notification-indicator {

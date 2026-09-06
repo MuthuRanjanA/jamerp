@@ -1,0 +1,25 @@
+services:
+  - type: web
+    name: jam-erp-backend
+    runtime: docker
+    dockerfilePath: ./Dockerfile
+    dockerContext: .
+    plan: free
+    region: oregon
+    envVars:
+      - key: DATABASE_URL
+        sync: false
+      - key: DATABASE_USERNAME
+        sync: false
+      - key: DATABASE_PASSWORD
+        sync: false
+      - key: JWT_SECRET
+        sync: false
+      - key: ADMIN_EMAIL
+        sync: false
+      - key: ADMIN_PASSWORD
+        sync: false
+      - key: CORS_ALLOWED_ORIGINS
+        value: https://jamerp.netlify.app,https://jamerpapplication.netlify.app,http://localhost:5173,http://localhost:5174
+      - key: DEFAULT_TEMP_PASSWORD
+        value: TempPassword@123

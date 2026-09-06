@@ -2,14 +2,16 @@
 .idea/
 .vscode/
 
-# MacOS
-.DS_Store
-
-# Local database & logs
+# Build and crash logs
+*.log
+target/
+hs_err_*.log
 backend/data/
 *.mv.db
-hs_err_*.log
 
 # Node
 node_modules/
 dist/
+
+# MacOS
+.DS_Store

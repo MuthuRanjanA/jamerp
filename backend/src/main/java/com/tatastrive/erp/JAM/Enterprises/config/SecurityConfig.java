@@ -1,6 +1,7 @@
 package com.tatastrive.erp.JAM.Enterprises.config;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
@@ -16,9 +17,11 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
-import org.springframework.beans.factory.annotation.Value;
 
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
+import java.util.stream.Collectors;
 
 @Configuration
 @EnableWebSecurity
@@ -27,7 +30,7 @@ public class SecurityConfig {
 	@Autowired
 	private JwtAuthenticationFilter jwtAuthFilter;
 
-	@Value("${app.cors.allowed-origins:https://*.vercel.app,https://jamerpapplication.netlify.app,http://localhost:5173,http://localhost:3000}")
+	@Value("${app.cors.allowed-origins:https://*.vercel.app,https://*.netlify.app,https://jamerpapplication.netlify.app,http://localhost:5173,http://localhost:3000,http://localhost:5174}")
 	private String corsAllowedOrigins;
 
 	@Bean
@@ -36,12 +39,10 @@ public class SecurityConfig {
 				.csrf(csrf -> csrf.disable())
 				.cors(cors -> cors.configurationSource(corsConfigurationSource()))
 				.authorizeHttpRequests(req -> req
-						.requestMatchers(
-								"/api/auth/login",
-								"/api/auth/change-temporary-password")
-						.permitAll()
-
 						.requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
+						.requestMatchers(
+								"/api/auth/**")
+						.permitAll()
 
 						// Users Management
 						.requestMatchers("/api/users/**")
@@ -124,20 +125,36 @@ public class SecurityConfig {
 	@Bean
 	public CorsConfigurationSource corsConfigurationSource() {
 		CorsConfiguration config = new CorsConfiguration();
-		List<String> origins = java.util.Arrays.stream(corsAllowedOrigins.split(","))
-				.map(String::trim)
-				.map(o -> o.endsWith("/") ? o.substring(0, o.length() - 1) : o)
-				.filter(o -> !o.isEmpty())
-				.collect(java.util.stream.Collectors.toList());
 
-		if (origins.stream().noneMatch(o -> o.contains("vercel.app"))) {
+		List<String> origins = new ArrayList<>();
+		if (corsAllowedOrigins != null && !corsAllowedOrigins.isBlank()) {
+			origins.addAll(
+					Arrays.stream(corsAllowedOrigins.split(","))
+							.map(String::trim)
+							.map(o -> o.endsWith("/") ? o.substring(0, o.length() - 1) : o)
+							.filter(s -> !s.isEmpty())
+							.collect(Collectors.toList())
+			);
+		}
+
+		if (origins.isEmpty()) {
 			origins.add("https://*.vercel.app");
+			origins.add("https://*.netlify.app");
+			origins.add("https://jamerpapplication.netlify.app");
+			origins.add("http://localhost:5173");
+			origins.add("http://localhost:5174");
+			origins.add("http://localhost:3000");
 		}
 
 		config.setAllowedOriginPatterns(origins);
-		config.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"));
+		config.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH", "HEAD"));
 		config.setAllowedHeaders(List.of("*"));
-		config.setExposedHeaders(List.of("Authorization", "Content-Disposition"));
+		config.setExposedHeaders(List.of(
+				"Authorization",
+				"Content-Disposition",
+				"Access-Control-Allow-Origin",
+				"Access-Control-Allow-Credentials"
+		));
 		config.setAllowCredentials(true);
 		config.setMaxAge(3600L);
 
