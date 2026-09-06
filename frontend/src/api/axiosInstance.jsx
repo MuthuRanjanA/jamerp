@@ -2,7 +2,7 @@ import axios from "axios";
 
 // Determine default base URL based on build mode
 const defaultBaseUrl = import.meta.env.PROD
-  ? (import.meta.env.VITE_API_URL || "https://erp-backend-s2nx.onrender.com")
+  ? (import.meta.env.VITE_API_URL || import.meta.env.VITE_API_BASE_URL || "https://jamerp.onrender.com")
   : "http://localhost:8080";
 
 // Support both VITE_API_BASE_URL and VITE_API_URL
