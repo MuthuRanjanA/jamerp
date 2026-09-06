@@ -8,10 +8,8 @@ import {
   FaMinus,
   FaExpandAlt,
   FaCompass,
-  FaLightbulb,
   FaArrowRight,
   FaUser,
-  FaSearch,
   FaCalendarAlt,
   FaCalendarCheck,
   FaMoneyBillWave,
@@ -49,6 +47,34 @@ const INITIAL_GREETING = (role, email) => ({
   timestamp: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
 });
 
+const renderActionIcon = (iconName) => {
+  switch (iconName) {
+    case "compass":
+      return <FaCompass />;
+    case "leave":
+    case "calendar":
+      return <FaCalendarAlt />;
+    case "attendance":
+      return <FaCalendarCheck />;
+    case "payroll":
+      return <FaMoneyBillWave />;
+    case "laptop":
+      return <FaLaptop />;
+    case "projects":
+      return <FaClipboardList />;
+    case "users":
+      return <FaUsers />;
+    case "departments":
+      return <FaBuilding />;
+    case "shifts":
+      return <FaClock />;
+    case "key":
+      return <FaKey />;
+    default:
+      return <FaQuestionCircle />;
+  }
+};
+
 export default function AssistantBot() {
   const [isOpen, setIsOpen] = useState(false);
   const [isMinimized, setIsMinimized] = useState(false);
@@ -56,7 +82,7 @@ export default function AssistantBot() {
   const [inputValue, setInputValue] = useState("");
   const [isTyping, setIsTyping] = useState(false);
   const [hasUnread, setHasUnread] = useState(false);
-  const [searchFilter, setSearchFilter] = useState("");
+  const [searchFilter] = useState("");
 
   const messagesEndRef = useRef(null);
   const inputRef = useRef(null);
@@ -64,7 +90,6 @@ export default function AssistantBot() {
 
   const role = (localStorage.getItem("role") || "EMPLOYEE").toUpperCase();
   const email = localStorage.getItem("email") || "";
-  const employeeId = localStorage.getItem("employeeId") || "";
 
   // Listen for external trigger events (e.g. from Navbar or shortcuts)
   useEffect(() => {
@@ -78,24 +103,45 @@ export default function AssistantBot() {
     return () => window.removeEventListener("open-jam-assistant", handleExternalOpen);
   }, []);
 
-  // Initialize or load messages from session storage
+  // Initialize or load messages safely from session storage
   useEffect(() => {
-    const savedChat = sessionStorage.getItem("jam_assistant_chat");
-    if (savedChat) {
-      try {
-        setMessages(JSON.parse(savedChat));
-      } catch {
-        setMessages([INITIAL_GREETING(role, email)]);
+    try {
+      const savedChat = sessionStorage.getItem("jam_assistant_chat");
+      if (savedChat) {
+        const parsed = JSON.parse(savedChat);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          const sanitized = parsed.map((msg) => ({
+            id: msg.id || Date.now(),
+            sender: msg.sender || "bot",
+            text: typeof msg.text === "string" ? msg.text : "",
+            timestamp: msg.timestamp || "",
+            suggestions: Array.isArray(msg.suggestions) ? msg.suggestions : [],
+            actions: Array.isArray(msg.actions)
+              ? msg.actions.map((act) => ({
+                  label: act.label || "Open",
+                  path: act.path || "/dashboard",
+                  icon: typeof act.icon === "string" ? act.icon : "compass",
+                }))
+              : [],
+          }));
+          setMessages(sanitized);
+          return;
+        }
       }
-    } else {
-      setMessages([INITIAL_GREETING(role, email)]);
+    } catch {
+      // Fallback on parse failure
     }
+    setMessages([INITIAL_GREETING(role, email)]);
   }, [role, email]);
 
   // Persist messages to sessionStorage
   useEffect(() => {
     if (messages.length > 0) {
-      sessionStorage.setItem("jam_assistant_chat", JSON.stringify(messages));
+      try {
+        sessionStorage.setItem("jam_assistant_chat", JSON.stringify(messages));
+      } catch {
+        // Ignore storage quota errors
+      }
     }
   }, [messages]);
 
@@ -125,20 +171,24 @@ export default function AssistantBot() {
   const handleClearChat = () => {
     const freshGreeting = [INITIAL_GREETING(role, email)];
     setMessages(freshGreeting);
-    sessionStorage.setItem("jam_assistant_chat", JSON.stringify(freshGreeting));
+    try {
+      sessionStorage.setItem("jam_assistant_chat", JSON.stringify(freshGreeting));
+    } catch {
+      // Ignore
+    }
   };
 
   // ERP Knowledge base & Intent matching engine
   const processQuery = (rawQuery) => {
-    const query = rawQuery.toLowerCase().trim();
+    const query = (rawQuery || "").toLowerCase().trim();
 
     // 1. GREETINGS
     if (/^(hi|hello|hey|greetings|good\s*(morning|afternoon|evening)|hola|sup)\b/i.test(query)) {
       return {
         text: `Hello ${email ? email.split("@")[0] : ""}! 😊 How can I assist you with JAM ERP today?\n\nYou can ask about:\n- 📅 **Leave Management** (Apply, Balance, Types)\n- ⏱️ **Attendance & Shifts**\n- 💰 **Payroll & Compensation**\n- 💻 **Asset Allocations**\n- 📁 **Projects & Tasks**\n- 👥 **Employee Directory & Profile**`,
         actions: [
-          { label: "Go to Dashboard", path: "/dashboard", icon: <FaCompass /> },
-          { label: "Apply Leave", path: "/leave", icon: <FaCalendarAlt /> },
+          { label: "Go to Dashboard", path: "/dashboard", icon: "compass" },
+          { label: "Apply Leave", path: "/leave", icon: "leave" },
         ],
         suggestions: ["What are my role permissions?", "How to track attendance?", "Calculate salary breakdown"],
       };
@@ -149,9 +199,9 @@ export default function AssistantBot() {
       return {
         text: `🤖 **About JAM ERP Assistant:**\nI am your intelligent assistant built into JAM ERP.\n\n**Here's what I can do for you:**\n- 🧭 **Instant Navigation**: Jump to any module instantly.\n- 📋 **Leave Policies**: Learn how to request time off and view leave types.\n- 🕒 **Attendance & Shifts**: Guide you on clock-in, punch times & shift rosters.\n- 💵 **Payroll Assistance**: Explain deductions, basic pay, allowances & payslips.\n- 💻 **Asset Tracking**: Check your allocated laptops and hardware.\n- 📊 **Project Tracking**: Manage tasks and project status.\n- 🔒 **Security**: Password resets and user role information.`,
         actions: [
-          { label: "Leave Management", path: "/leave", icon: <FaCalendarAlt /> },
-          { label: "Attendance Portal", path: "/attendance", icon: <FaCalendarCheck /> },
-          { label: "Payroll", path: "/payroll", icon: <FaMoneyBillWave /> },
+          { label: "Leave Management", path: "/leave", icon: "leave" },
+          { label: "Attendance Portal", path: "/attendance", icon: "attendance" },
+          { label: "Payroll", path: "/payroll", icon: "payroll" },
         ],
         suggestions: ["Show all shortcut links", "How to apply for sick leave?", "Where are my assets?"],
       };
@@ -162,8 +212,8 @@ export default function AssistantBot() {
       return {
         text: `📅 **Leave Management Guide:**\n\n**How to Apply for Leave:**\n1. Click the button below to open the **Leave Management** page.\n2. Click on **'Apply Leave'** / **'New Request'**.\n3. Choose your **Leave Type** (Casual, Sick, Maternity, Paternity, Annual).\n4. Select your **Start Date** and **End Date**.\n5. Provide a clear reason and submit.\n\n*Note: Managers & HR will receive your request for approval.*`,
         actions: [
-          { label: "Open Leave Management", path: "/leave", icon: <FaCalendarAlt /> },
-          { label: "Company Calendar", path: "/calendar", icon: <FaCalendarCheck /> },
+          { label: "Open Leave Management", path: "/leave", icon: "leave" },
+          { label: "Company Calendar", path: "/calendar", icon: "calendar" },
         ],
         suggestions: ["What leave types are available?", "How do approvals work?", "Take me to attendance"],
       };
@@ -174,8 +224,8 @@ export default function AssistantBot() {
       return {
         text: `⏱️ **Attendance Tracking in JAM ERP:**\n\n- **Check-In/Out**: Navigate to the **Attendance** section to record your daily clock-in & clock-out times.\n- **Status**: Your attendance automatically calculates worked hours and marks status (Present, Half Day, Absent, or Late).\n- **History**: You can filter past records by month and date range.`,
         actions: [
-          { label: "Go to Attendance", path: "/attendance", icon: <FaCalendarCheck /> },
-          { label: "View Calendar", path: "/calendar", icon: <FaCalendarAlt /> },
+          { label: "Go to Attendance", path: "/attendance", icon: "attendance" },
+          { label: "View Calendar", path: "/calendar", icon: "calendar" },
         ],
         suggestions: ["What are the shift timings?", "How to request attendance regularisation?", "Go to Dashboard"],
       };
@@ -191,8 +241,8 @@ export default function AssistantBot() {
             : "ℹ️ *You can view your assigned shift in your Employee Profile or Attendance overview.*"
         }`,
         actions: isAdminOrHR
-          ? [{ label: "Manage Shifts", path: "/shifts", icon: <FaClock /> }]
-          : [{ label: "View Attendance", path: "/attendance", icon: <FaCalendarCheck /> }],
+          ? [{ label: "Manage Shifts", path: "/shifts", icon: "shifts" }]
+          : [{ label: "View Attendance", path: "/attendance", icon: "attendance" }],
         suggestions: ["How to check in on my shift?", "Who manages shift assignments?"],
       };
     }
@@ -207,7 +257,7 @@ export default function AssistantBot() {
             : "📄 *You can view your pay statements and payment status under the Payroll section.*"
         }`,
         actions: [
-          { label: "Go to Payroll", path: "/payroll", icon: <FaMoneyBillWave /> },
+          { label: "Go to Payroll", path: "/payroll", icon: "payroll" },
         ],
         suggestions: ["Calculate sample salary", "When is payday?", "Go to Assets"],
       };
@@ -234,7 +284,7 @@ export default function AssistantBot() {
 
       return {
         text: `🧮 **Salary Estimator:**${calculatedText || "\n\nYou can ask me like: *'Calculate salary for 50000'* or *'Estimate 80000 CTC'* to see an instant estimated breakdown!"}`,
-        actions: [{ label: "Open Payroll", path: "/payroll", icon: <FaMoneyBillWave /> }],
+        actions: [{ label: "Open Payroll", path: "/payroll", icon: "payroll" }],
         suggestions: ["Calculate salary for 50000", "Calculate salary for 75000", "What are tax deductions?"],
       };
     }
@@ -244,7 +294,7 @@ export default function AssistantBot() {
       return {
         text: `💻 **Asset Management:**\n\n- **View Your Assets**: You can view all equipment assigned to you (Laptop, Monitors, Accessories) from the **Assets** tab or your **Profile menu**.\n- **Asset Statuses**: Assigned, In Maintenance, Available, or Retired.\n- **Support**: If your hardware has issues, reach out to IT or request a replacement via your Department Manager.`,
         actions: [
-          { label: "View Assets", path: "/assets", icon: <FaLaptop /> },
+          { label: "View Assets", path: "/assets", icon: "laptop" },
         ],
         suggestions: ["How do I request a new laptop?", "Go to Departments", "My Profile"],
       };
@@ -255,7 +305,7 @@ export default function AssistantBot() {
       return {
         text: `📁 **Projects & Work Tracking:**\n\n- **Project Directory**: Track ongoing, planned, and completed projects.\n- **Collaboration**: View project deadlines, assigned team members, client details, and budgets.\n- **Status Flow**: \`PLANNED\` ➔ \`IN_PROGRESS\` ➔ \`ON_HOLD\` ➔ \`COMPLETED\``,
         actions: [
-          { label: "Go to Projects", path: "/projects", icon: <FaClipboardList /> },
+          { label: "Go to Projects", path: "/projects", icon: "projects" },
         ],
         suggestions: ["Create a new project", "View calendar events", "Open Dashboard"],
       };
@@ -271,7 +321,7 @@ export default function AssistantBot() {
             : "ℹ️ *You can browse colleagues and search team contacts in the directory.*"
         }`,
         actions: [
-          { label: "Employee Directory", path: "/employee", icon: <FaUsers /> },
+          { label: "Employee Directory", path: "/employee", icon: "users" },
         ],
         suggestions: ["Where is Department list?", "How to change user role?", "View My Profile"],
       };
@@ -282,7 +332,7 @@ export default function AssistantBot() {
       return {
         text: `🏢 **Department Overview:**\n\nDepartments organise teams across JAM ERP (e.g. Engineering, Human Resources, Finance, Operations, Sales).\n\nBrowse departments to view member counts, department heads, and associated projects.`,
         actions: [
-          { label: "View Departments", path: "/departments", icon: <FaBuilding /> },
+          { label: "View Departments", path: "/departments", icon: "departments" },
         ],
         suggestions: ["Who is in HR?", "Go to Employees", "Go to Projects"],
       };
@@ -294,8 +344,8 @@ export default function AssistantBot() {
       return {
         text: `🛡️ **User Roles & Permissions in JAM ERP:**\n\n- **ADMIN**: Complete system access, user provisioning, shift configuration, and full data control.\n- **HR**: Employee onboarding, payroll management, and leave administration.\n- **MANAGER**: Team oversight, project management, and attendance/leave reviews.\n- **EMPLOYEE**: Personal self-service (Attendance, Leaves, Profile, Assets, Calendar).\n\nYour Current Role: **${role}**`,
         actions: isAdmin
-          ? [{ label: "Manage Users", path: "/users", icon: <FaUsers /> }]
-          : [{ label: "Change Password", path: "/change-password", icon: <FaKey /> }],
+          ? [{ label: "Manage Users", path: "/users", icon: "users" }]
+          : [{ label: "Change Password", path: "/change-password", icon: "key" }],
         suggestions: ["How to reset password?", "View Dashboard", "What can HR do?"],
       };
     }
@@ -305,7 +355,7 @@ export default function AssistantBot() {
       return {
         text: `🔑 **Account Security & Password:**\n\nTo update your password:\n1. Click the button below to open the **Change Password** screen.\n2. Enter your current password.\n3. Enter and confirm your new secure password (minimum 8 characters).\n4. Click **Update Password**.`,
         actions: [
-          { label: "Change Password", path: "/change-password", icon: <FaKey /> },
+          { label: "Change Password", path: "/change-password", icon: "key" },
         ],
         suggestions: ["Go to Login", "My Profile", "Dashboard"],
       };
@@ -316,7 +366,7 @@ export default function AssistantBot() {
       return {
         text: `📅 **Company Calendar & Events:**\n\nKeep track of official company holidays, upcoming milestones, team leaves, and company-wide schedules directly in the Calendar module.`,
         actions: [
-          { label: "Open Calendar", path: "/calendar", icon: <FaCalendarAlt /> },
+          { label: "Open Calendar", path: "/calendar", icon: "calendar" },
         ],
         suggestions: ["Apply Leave", "Check Shift Timings", "Go to Attendance"],
       };
@@ -326,7 +376,7 @@ export default function AssistantBot() {
     if (/(dashboard|home)/i.test(query)) {
       return {
         text: `🏠 Navigating to the **Main Dashboard** gives you a 360° overview of KPIs, attendance statistics, active projects, and system notifications.`,
-        actions: [{ label: "Go to Dashboard", path: "/dashboard", icon: <FaCompass /> }],
+        actions: [{ label: "Go to Dashboard", path: "/dashboard", icon: "compass" }],
         suggestions: ["Show all shortcuts", "View attendance", "View projects"],
       };
     }
@@ -335,10 +385,10 @@ export default function AssistantBot() {
     return {
       text: `💡 I found information related to **"${rawQuery}"**:\n\nYou can explore any of the quick ERP sections below, or ask me specific questions regarding **Leaves, Attendance, Payroll, Assets, Projects, Shifts**, or **System Navigation**.`,
       actions: [
-        { label: "Dashboard", path: "/dashboard", icon: <FaCompass /> },
-        { label: "Leaves", path: "/leave", icon: <FaCalendarAlt /> },
-        { label: "Attendance", path: "/attendance", icon: <FaCalendarCheck /> },
-        { label: "Payroll", path: "/payroll", icon: <FaMoneyBillWave /> },
+        { label: "Dashboard", path: "/dashboard", icon: "compass" },
+        { label: "Leaves", path: "/leave", icon: "leave" },
+        { label: "Attendance", path: "/attendance", icon: "attendance" },
+        { label: "Payroll", path: "/payroll", icon: "payroll" },
       ],
       suggestions: [
         "How to apply for leave?",
@@ -409,10 +459,10 @@ export default function AssistantBot() {
       return (
         <div key={lineIdx} className={`bot-text-line ${line.startsWith("-") || line.startsWith("•") ? "is-bullet" : ""}`}>
           {parts.map((part, partIdx) => {
-            if (part.startsWith("**") && part.endsWith("**")) {
+            if (part && part.startsWith("**") && part.endsWith("**")) {
               return <strong key={partIdx}>{part.slice(2, -2)}</strong>;
             }
-            if (part.startsWith("`") && part.endsWith("`")) {
+            if (part && part.startsWith("`") && part.endsWith("`")) {
               return <code key={partIdx}>{part.slice(1, -1)}</code>;
             }
             return <span key={partIdx}>{part}</span>;
@@ -556,7 +606,11 @@ export default function AssistantBot() {
                                   className="action-nav-button"
                                   onClick={() => handleActionClick(act.path)}
                                 >
-                                  {act.icon && <span className="action-icon">{act.icon}</span>}
+                                  {act.icon && (
+                                    <span className="action-icon">
+                                      {renderActionIcon(act.icon)}
+                                    </span>
+                                  )}
                                   <span>{act.label}</span>
                                   <FaArrowRight className="action-arrow" />
                                 </button>
