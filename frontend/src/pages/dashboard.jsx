@@ -26,7 +26,11 @@ import { getAllLeaves } from "../services/leaveservice";
 import "../style/dashboard.css";
 
 function Dashboard() {
-  const role = localStorage.getItem("role") || "EMPLOYEE";
+  const role = (localStorage.getItem("role") || "EMPLOYEE").toUpperCase();
+  const isSuperAdminOrAdmin = role === "ADMIN";
+  const canManageEmployees = isSuperAdminOrAdmin || role === "HR" || role === "MANAGER";
+  const canManageUsers = isSuperAdminOrAdmin;
+  const canManageLeaves = isSuperAdminOrAdmin || role === "HR" || role === "MANAGER";
 
   const [stats, setStats] = useState({
     employees: 0,
@@ -43,13 +47,20 @@ function Dashboard() {
 
     async function fetchStats() {
       try {
+        const empPromise = canManageEmployees ? getEmployees() : Promise.resolve({ data: [] });
+        const userPromise = canManageUsers ? getAllUsers() : Promise.resolve({ data: [] });
+        const depPromise = getDepartments();
+        const astPromise = getAllAssets();
+        const projPromise = getAllProjects();
+        const leavePromise = canManageLeaves ? getAllLeaves() : Promise.resolve({ data: [] });
+
         const [empRes, depRes, astRes, projRes, userRes, leaveRes] = await Promise.allSettled([
-          getEmployees(),
-          getDepartments(),
-          getAllAssets(),
-          getAllProjects(),
-          getAllUsers(),
-          getAllLeaves(),
+          empPromise,
+          depPromise,
+          astPromise,
+          projPromise,
+          userPromise,
+          leavePromise,
         ]);
 
         if (!active) return;

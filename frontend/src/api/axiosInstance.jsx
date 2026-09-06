@@ -33,14 +33,15 @@ api.interceptors.response.use(
   (error) => {
     const isLoginRequest = error.config?.url?.includes("/auth/login");
 
+    // Only redirect if token is expired or unauthorized (401), NOT on 403 Forbidden
     if (
       !isLoginRequest &&
       error.response &&
-      (error.response.status === 401 || error.response.status === 403)
+      error.response.status === 401
     ) {
       const currentPath = window.location.pathname;
       if (!currentPath.includes("/login")) {
-        console.error("Token expired or unauthorized, redirecting to login.");
+        console.error("Token expired or unauthorized (401), redirecting to login.");
         localStorage.removeItem("token");
         localStorage.removeItem("role");
         localStorage.removeItem("employeeId");
